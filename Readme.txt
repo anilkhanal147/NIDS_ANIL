@@ -1,7 +1,3 @@
-You'll need:
-
-A .pcap file (e.g., test.pcap)
-
 A trained ML model (model.pkl — use IsolationForest, Autoencoder, etc.)
 
 joblib, scikit-learn, pandas, scapy installed:
