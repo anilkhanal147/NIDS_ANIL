@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>NIDS Mode Selector</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Orbitron', sans-serif;
+            color: #00ffcc;
+            background-color: #000;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+        h1, p {
+            color: #00ffc3;
+        }
+        .btn {
+            font-size: 1.2rem;
+        }
+    </style>
+</head>
+<body class="p-5 text-center">
+
+<div class="container">
+    <h1 class="mb-4 animate__animated animate__fadeInDown">⚡ Network Intrusion Detection System ⚡</h1>
+    <h3 class="animate__animated animate__fadeInDown">Developed By - Anil Khanal</h3>
+    <p class="lead mb-5 animate__animated animate__fadeInUp">Choose your analysis mode</p>
+
+    <div class="row justify-content-center">
+        <div class="col-md-4">
+            <a href="{{ url_for('index') }}" class="btn btn-primary btn-lg w-100 p-3 animate__animated animate__zoomIn">
+                📁 Upload CSV File
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="{{ url_for('realtime') }}" class="btn btn-success btn-lg w-100 p-3 animate__animated animate__zoomIn">
+                🌐 Real-Time Monitoring
+            </a>
+        </div>
+    </div>
+</div>
+
+<!-- Animate.css -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/animate.css/4.1.1/animate.min.css"/>
+
+<!-- Vanta Background -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r121/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/vanta@latest/dist/vanta.net.min.js"></script>
+<script>
+VANTA.NET({
+  el: "body",
+  mouseControls: true,
+  touchControls: true,
+  color: 0x00ffcc,
+  backgroundColor: 0x000000,
+  points: 12.0,
+  maxDistance: 24.0,
+  spacing: 18.0
+})
+</script>
+
+</body>
+</html>

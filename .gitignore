@@ -1,0 +1,15 @@
+# OS
+.DS_Store
+thumbs.db
+
+# Python
+__pycache__/
+*.pyc
+env/
+venv/
+
+# Node
+node_modules/
+
+# Secrets
+.env

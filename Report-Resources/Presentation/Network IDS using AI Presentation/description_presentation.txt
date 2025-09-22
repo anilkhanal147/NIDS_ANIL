@@ -1,0 +1,31 @@
+ Slide 1:
+
+In this section, I would like to provide an overview of my project, which centers around enhancing cybersecurity through a web-based Network Intrusion Detection System (NIDS).
+My name is Anil Khanal, and my aim is to utilize machine learning for effective anomaly detection in network traffic with the help and guidance of my supervisor Mr. XXXXXX.
+
+I’ve outlined specific objectives that include:
+
+* Examining different methods for intrusion detection systems
+* Preprocessing the necessary data for analysis
+* Training robust machine learning models
+* Enabling real-time analysis through a developed user interface that also supports CSV data uploads
+
+The project methodology encompasses data preprocessing followed by the training of models such as Random Forest, Logistic Regression, and Isolation Forest, which are ultimately integrated into a modular, web-based platform.
+
+____________________________________________________________________________________________________________________________________________
+
+Slide 2:
+
+As we move to the results and the overarching conclusion of my project, it is notable that the Random Forest model yielded a remarkable F1-score of 1.00, representing a perfect accuracy level.
+
+Moreover, our system demonstrated real-time packet sniffing with a latency of less than one second, indicating high efficiency in monitoring network traffic. The design of an interactive user interface further contributed to an enhanced user experience.
+
+In conclusion, the project has successfully established a robust, modular web-based NIDS, achieving high accuracy alongside usability.
+
+Looking forward, future work will focus on:
+
+* Integrating more advanced deep learning models for improved performance
+* Applying Deep Packet Inspection (DPI) methodologies
+* Automating alerting mechanisms for rapid threat response
+* Developing scalable architectures to support larger workload demands
+* Continuously enhancing the UI for optimal user interaction

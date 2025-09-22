@@ -1,0 +1,3 @@
+import joblib
+model, scaler = joblib.load("model.pkl")
+print(scaler.feature_names_in_)

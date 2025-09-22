@@ -1,3 +1,10 @@
+<<<<<<< HEAD
+=======
+You'll need:
+
+A .pcap file (e.g., test.pcap)
+
+>>>>>>> 5327519 (Initial commit)
 A trained ML model (model.pkl — use IsolationForest, Autoencoder, etc.)
 
 joblib, scikit-learn, pandas, scapy installed:

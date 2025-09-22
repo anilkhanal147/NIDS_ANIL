@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Real-Time NIDS</title>
+  <script src="https://cdn.socket.io/4.4.1/socket.io.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.2.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body {
+      background-color: #000;
+      color: #0ff;
+      font-family: monospace;
+    }
+    .anomaly-row {
+      background-color: #ffcccc !important;
+      color: #000;
+    }
+    .normal-row {
+      background-color: #ccffcc !important;
+      color: #000;
+    }
+    select, input {
+      color: #000;
+    }
+    .card {
+      background-color: #111;
+      border: 1px solid #0ff;
+      color: #0ff;
+    }
+  </style>
+</head>
+<body class="p-4">
+  <div class="container">
+    <h2>🌐 Real-Time Network Anomaly Feed</h2>
+    <h3 class="animate__animated animate__fadeInDown">Developed By - Anil Khanal</h3>
+
+
+    <!-- 🔄 Summary Cards -->
+    <div class="row my-3 text-center">
+      <div class="col-md-3"><div class="card p-2"><h5>Total Packets</h5><h3 id="totalPackets">0</h3></div></div>
+      <div class="col-md-3"><div class="card p-2"><h5>Anomalies</h5><h3 id="totalAnomalies">0</h3></div></div>
+      <div class="col-md-3"><div class="card p-2"><h5>Normal</h5><h3 id="totalNormal">0</h3></div></div>
+      <div class="col-md-3"><div class="card p-2"><h5>Anomaly Rate</h5><h3 id="anomalyRate">0%</h3></div></div>
+    </div>
+
+    <!-- 🔍 Filters + Controls -->
+    <div class="row mb-3">
+      <div class="col-md-3">
+        <label>Status:</label>
+        <select class="form-control" id="statusFilter">
+          <option value="all">All</option>
+          <option value="anomaly">Anomalies Only</option>
+          <option value="normal">Normal Only</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label>Protocol:</label>
+        <select class="form-control" id="protocolFilter">
+          <option value="all">All</option>
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label>Search IP:</label>
+        <input type="text" class="form-control" id="ipSearch" placeholder="Source or Dest IP">
+      </div>
+      <div class="col-md-3 text-end mt-4">
+        <button class="btn btn-warning" id="toggleFeed">⏸️ Pause Feed</button>
+      </div>
+    </div>
+
+    <table class="table table-bordered table-dark table-striped" id="logTable">
+      <thead>
+        <tr><th>Time</th><th>Source IP</th><th>Dest IP</th><th>Protocol</th><th>Length</th><th>Status</th><th>Reason</th></tr>
+      </thead>
+      <tbody></tbody>
+      <div class="my-3 d-flex justify-content-end gap-2">
+  <button class="btn btn-outline-success" id="downloadFiltered">⬇️ Download Filtered</button>
+  <button class="btn btn-outline-info" id="downloadAll">⬇️ Download All</button>
+</div>
+
+    </table>
+
+    <!-- 📊 Chart -->
+    <div class="row mt-4">
+      <div class="col-md-6">
+        <canvas id="protocolChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  
+  <script>
+    const socket = io();
+    const tableBody = document.querySelector("#logTable tbody");
+    const statusFilter = document.getElementById("statusFilter");
+    const protocolFilter = document.getElementById("protocolFilter");
+    const ipSearch = document.getElementById("ipSearch");
+    const toggleFeedBtn = document.getElementById("toggleFeed");
+
+    let allPackets = [];
+    let feedPaused = false;
+
+    const protocolCount = {};
+
+    // Chart.js setup
+    const protocolChartCtx = document.getElementById("protocolChart").getContext("2d");
+    const protocolChart = new Chart(protocolChartCtx, {
+      type: 'pie',
+      data: {
+        labels: [],
+        datasets: [{
+          data: [],
+          backgroundColor: ['#17a2b8', '#ffc107', '#28a745', '#dc3545', '#6f42c1', '#fd7e14']
+        }]
+      },
+      options: {
+        plugins: {
+          legend: { labels: { color: '#0ff' } }
+        }
+      }
+    });
+
+    function updateChart() {
+      protocolChart.data.labels = Object.keys(protocolCount);
+      protocolChart.data.datasets[0].data = Object.values(protocolCount);
+      protocolChart.update();
+    }
+
+    function updateSummary() {
+      const total = allPackets.length;
+      const anomalies = allPackets.filter(p => p.anomaly).length;
+      const normal = total - anomalies;
+      const rate = total ? ((anomalies / total) * 100).toFixed(1) : 0;
+
+      document.getElementById("totalPackets").textContent = total;
+      document.getElementById("totalAnomalies").textContent = anomalies;
+      document.getElementById("totalNormal").textContent = normal;
+      document.getElementById("anomalyRate").textContent = `${rate}%`;
+    }
+
+    function updateProtocolOptions(proto) {
+      const exists = [...protocolFilter.options].some(opt => opt.value === proto);
+      if (!exists) {
+        const opt = document.createElement("option");
+        opt.value = proto;
+        opt.textContent = proto;
+        protocolFilter.appendChild(opt);
+      }
+    }
+
+    function renderTable() {
+      tableBody.innerHTML = "";
+
+      const status = statusFilter.value;
+      const protocol = protocolFilter.value;
+      const ipQuery = ipSearch.value.trim().toLowerCase();
+
+      const filtered = allPackets.filter(pkt => {
+        const matchesStatus = status === "all" || (status === "anomaly" && pkt.anomaly) || (status === "normal" && !pkt.anomaly);
+        const matchesProtocol = protocol === "all" || pkt.protocol === protocol;
+        const matchesIP = pkt.src_ip.toLowerCase().includes(ipQuery) || pkt.dst_ip.toLowerCase().includes(ipQuery);
+        return matchesStatus && matchesProtocol && matchesIP;
+      });
+
+      for (const data of filtered.slice(-100).reverse()) {
+        const row = document.createElement("tr");
+        row.className = data.anomaly ? "anomaly-row" : "normal-row";
+        row.innerHTML = `
+          <td>${data.time}</td>
+          <td>${data.src_ip}</td>
+          <td>${data.dst_ip}</td>
+          <td>${data.protocol}</td>
+          <td>${data.length}</td>
+          <td>${data.anomaly ? '🚨 Anomaly' : '✅ Normal'}</td>
+          <td>${data.reason}</td>`;
+        tableBody.appendChild(row);
+      }
+    }
+
+    socket.on("packet_result", function (data) {
+      const timestamp = new Date().toLocaleTimeString();
+      data.time = timestamp;
+
+      allPackets.push(data);
+
+      // Update chart data
+      protocolCount[data.protocol] = (protocolCount[data.protocol] || 0) + 1;
+
+      updateProtocolOptions(data.protocol);
+      updateSummary();
+      updateChart();
+
+      if (!feedPaused) renderTable();
+    });
+
+    // Controls
+    statusFilter.addEventListener("change", renderTable);
+    protocolFilter.addEventListener("change", renderTable);
+    ipSearch.addEventListener("input", renderTable);
+
+    toggleFeedBtn.addEventListener("click", () => {
+      feedPaused = !feedPaused;
+      toggleFeedBtn.textContent = feedPaused ? "▶️ Resume Feed" : "⏸️ Pause Feed";
+      if (!feedPaused) renderTable();
+    });
+
+    // Debug
+    socket.on("connect", () => console.log("✅ Connected to SocketIO"));
+    socket.on("disconnect", () => console.log("❌ Disconnected from SocketIO"));
+    socket.on("connect_error", err => console.error("SocketIO error:", err));
+
+
+    // Download buttons
+document.getElementById("downloadFiltered").addEventListener("click", () => {
+  const status = statusFilter.value;
+  const protocol = protocolFilter.value;
+  const ipQuery = ipSearch.value.trim().toLowerCase();
+
+  const filtered = allPackets.filter(pkt => {
+    const matchesStatus = status === "all" || (status === "anomaly" && pkt.anomaly) || (status === "normal" && !pkt.anomaly);
+    const matchesProtocol = protocol === "all" || pkt.protocol === protocol;
+    const matchesIP = pkt.src_ip.toLowerCase().includes(ipQuery) || pkt.dst_ip.toLowerCase().includes(ipQuery);
+    return matchesStatus && matchesProtocol && matchesIP;
+  });
+
+  fetch("/download_filtered", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ rows: filtered })
+  }).then(response => {
+    if (response.ok) {
+      return response.blob();
+    } else {
+      throw new Error("Download failed.");
+    }
+  }).then(blob => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "filtered_results.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }).catch(err => alert(err.message));
+});
+
+document.getElementById("downloadAll").addEventListener("click", () => {
+  fetch("/download_filtered", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({ rows: allPackets })
+  }).then(response => {
+    if (response.ok) {
+      return response.blob();
+    } else {
+      throw new Error("Download failed.");
+    }
+  }).then(blob => {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = "all_results.csv";
+    link.click();
+    URL.revokeObjectURL(url);
+  }).catch(err => alert(err.message));
+});
+
+  </script>
+</body>
+</html>
